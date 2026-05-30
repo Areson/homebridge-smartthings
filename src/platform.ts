@@ -5,6 +5,7 @@ import axios = require('axios');
 //import { BasePlatformAccessory } from './basePlatformAccessory';
 import { MultiServiceAccessory } from './multiServiceAccessory';
 import { SubscriptionHandler } from './webhook/subscriptionHandler';
+import { DISCOVERY_RETRY_ATTEMPTS, DISCOVERY_RETRY_INITIAL_DELAY_SECONDS, DISCOVERY_RETRY_MAX_DELAY_SECONDS, wait } from './keyValues';
 
 /**
  * HomebridgePlatform
@@ -86,68 +87,147 @@ export class IKHomeBridgeHomebridgePlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
-  getLocationsToIgnore(): Promise<boolean> {
+  async getLocationsToIgnore(): Promise<boolean> {
     this.log.info('Loading locations for exclusion');
-    return new Promise((resolve) => {
-      this.axInstance.get('locations').then(res => {
-        res.data.items.forEach(location => {
+
+    const { attempts, initialDelay, maxDelay } = this.getDiscoveryRetryConfig();
+    const isInfinite = attempts === -1;
+    let lastError: unknown;
+    let attempt = 1;
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        const res = await this.axInstance.get('locations');
+        res.data.items.forEach((location: any) => {
           if (this.config.IgnoreLocations.find(l => l.toLowerCase() === location.name.toLowerCase())) {
             this.locationIDsToIgnore.push(location.locationId);
           }
         });
         this.log.info(`Found ${this.locationIDsToIgnore.length} locations to ignore`);
-        resolve(true);
-      }).catch(reason => {
-        this.log.error('Could not load locations: ' + reason + '. You must have r:locations permissions set on the token');
-        resolve(true);
-      });
-    });
+        return true;
+      } catch (error) {
+        lastError = error;
+        const message = (error as any)?.message || String(error);
+        const attemptLabel = isInfinite ? `${attempt}/∞` : `${attempt}/${attempts}`;
+        this.log.warn(`Attempt ${attemptLabel} to load locations failed: ${message}`);
+
+        const shouldRetry = isInfinite || attempt < attempts;
+        if (shouldRetry) {
+          const delaySeconds = Math.min(
+            initialDelay * Math.pow(2, attempt - 1),
+            maxDelay,
+          );
+          this.log.info(`Retrying location load in ${delaySeconds} seconds...`);
+          await wait(delaySeconds);
+          attempt++;
+        } else {
+          break;
+        }
+      }
+    }
+
+    const attemptsLabel = attempts === -1 ? 'indefinite' : `${attempts}`;
+    this.log.error(
+      `Could not load locations after ${attemptsLabel} attempts: ${lastError}. ` +
+      'You must have r:locations permissions set on the token',
+    );
+    return true; // Preserve original behavior of not blocking discovery
   }
 
-  getOnlineDevices(): Promise<Array<object>> {
+  async getOnlineDevices(): Promise<Array<object>> {
     this.log.debug('Discovering devices...');
 
     const command = 'devices';
+    const { attempts, initialDelay, maxDelay } = this.getDiscoveryRetryConfig();
+    const isInfinite = attempts === -1;
+    let lastError: unknown;
+    let attempt = 1;
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      try {
+        const devices = await this.fetchDevicesOnce(command);
+        if (devices.length > 0) {
+          this.log.info(`Successfully discovered ${devices.length} devices from SmartThings on attempt ${attempt}.`);
+        } else {
+          this.log.warn('Device discovery succeeded but returned 0 devices.');
+        }
+        return devices;
+      } catch (error) {
+        lastError = error;
+        const message = (error as any)?.message || String(error);
+        const attemptLabel = isInfinite ? `${attempt}/∞` : `${attempt}/${attempts}`;
+        this.log.warn(`Attempt ${attemptLabel} to discover devices failed: ${message}`);
+
+        const shouldRetry = isInfinite || attempt < attempts;
+        if (shouldRetry) {
+          const delaySeconds = Math.min(
+            initialDelay * Math.pow(2, attempt - 1),
+            maxDelay,
+          );
+          this.log.info(`Retrying device discovery in ${delaySeconds} seconds...`);
+          await wait(delaySeconds);
+          attempt++;
+        } else {
+          break;
+        }
+      }
+    }
+
+    this.log.error(`Failed to discover devices after ${attempts} attempts.`);
+    throw lastError;
+  }
+
+  private getDiscoveryRetryConfig() {
+    const attemptsRaw = this.config.DiscoveryRetryAttempts;
+    // Support -1 for infinite retries; fall back to default if not a number
+    const attempts = (attemptsRaw === undefined || attemptsRaw === null)
+      ? DISCOVERY_RETRY_ATTEMPTS
+      : Number(attemptsRaw);
+
+    return {
+      attempts,
+      initialDelay: this.config.DiscoveryRetryInitialDelaySeconds ?? DISCOVERY_RETRY_INITIAL_DELAY_SECONDS,
+      maxDelay: this.config.DiscoveryRetryMaxDelaySeconds ?? DISCOVERY_RETRY_MAX_DELAY_SECONDS,
+    };
+  }
+
+  private async fetchDevicesOnce(command: string): Promise<Array<object>> {
     const devices: Array<object> = [];
+    const res = await this.axInstance.get(command);
 
-    return new Promise<Array<object>>((resolve, reject) => {
+    res.data.items.forEach((device) => {
+      // If an apostrophe is included in the name of the device in SmartThings, it comes over as a Right Single
+      // quote which will not match with a single quote in the config.  This replaces it so it will match
+      if (!device.label) {
+        device.label = 'Missing Name';
+      }
+      let deviceName = '';
+      try {
+        // deviceName = device.label.toString().replaceAll(String.fromCharCode(8217), '\'');
+        deviceName = device.label;
+      } catch (error) {
+        this.log.warn(`Error getting device name for ${device.label}: ${error}`);
+        deviceName = device.label;
+      }
+      if (this.config.IgnoreDevices &&
+        //this.config.IgnoreDevices.find(d => d.replaceAll(String.fromCharCode(8217), '\'').toLowerCase() === deviceName.toLowerCase())) {
+        this.config.IgnoreDevices.find(d => d.toLowerCase() === deviceName.toLowerCase())) {
+        this.log.info(`Ignoring ${device.label} because it is in the Ignore Devices list`);
+        return;
+      }
 
-      this.axInstance.get(command).then((res) => {
-        res.data.items.forEach((device) => {
-          // If an apostrophe is included in the name of the device in SmartThings, it comes over as a Right Single
-          // quote which will not match with a single quote in the config.  This replaces it so it will match
-          if (!device.label) {
-            device.label = 'Missing Name';
-          }
-          let deviceName = '';
-          try {
-            // deviceName = device.label.toString().replaceAll(String.fromCharCode(8217), '\'');
-            deviceName = device.label;
-          } catch(error) {
-            this.log.warn(`Error getting device name for ${device.label}: ${error}`);
-            deviceName = device.label;
-          }
-          if (this.config.IgnoreDevices &&
-          //this.config.IgnoreDevices.find(d => d.replaceAll(String.fromCharCode(8217), '\'').toLowerCase() === deviceName.toLowerCase())) {
-            this.config.IgnoreDevices.find(d => d.toLowerCase() === deviceName.toLowerCase())) {
-            this.log.info(`Ignoring ${device.label} because it is in the Ignore Devices list`);
-            return;
-          }
-
-          if (!this.locationIDsToIgnore.find(locationID => device.locationId === locationID)) {
-            this.log.debug('Pushing ' + device.label);
-            devices.push(device);
-          } else {
-            this.log.info(`Ignoring ${device.label} because it is in a location to ignore (${device.locationId})`);
-          }
-        });
-        this.log.debug('Stored all devices.');
-        resolve(devices);
-      }).catch(error => {
-        this.log.error('Error getting devices from Smartthings: ' + error);
-        reject();
-      });
+      if (!this.locationIDsToIgnore.find(locationID => device.locationId === locationID)) {
+        this.log.debug('Pushing ' + device.label);
+        devices.push(device);
+      } else {
+        this.log.info(`Ignoring ${device.label} because it is in a location to ignore (${device.locationId})`);
+      }
     });
+
+    this.log.debug('Stored all devices.');
+    return devices;
   }
 
   unregisterDevices(devices, all = false) {

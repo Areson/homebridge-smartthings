@@ -29,6 +29,27 @@
         "required": false,
         "default": ""
       },
+      "DiscoveryRetryAttempts": {
+        "title": "Discovery Retry Attempts",
+        "description": "How many times to retry discovering devices (and locations) when SmartThings is unreachable. Set to -1 for indefinite retries (highly recommended on unreliable networks or with Raspberry Pi).",
+        "type": "integer",
+        "required": false,
+        "default": 6
+      },
+      "DiscoveryRetryInitialDelaySeconds": {
+        "title": "Discovery Retry Initial Delay (seconds)",
+        "description": "Delay before the first retry. Subsequent delays double until the max delay is reached.",
+        "type": "integer",
+        "required": false,
+        "default": 5
+      },
+      "DiscoveryRetryMaxDelaySeconds": {
+        "title": "Discovery Retry Max Delay (seconds)",
+        "description": "Maximum time to wait between retries. Once reached, retries continue at this interval.",
+        "type": "integer",
+        "required": false,
+        "default": 60
+      },
 
       "GarageDoorMaxPoll": {
         "title": "Garage Door Max Poll",
