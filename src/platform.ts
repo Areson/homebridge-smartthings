@@ -5,6 +5,7 @@ import axios = require('axios');
 //import { BasePlatformAccessory } from './basePlatformAccessory';
 import { MultiServiceAccessory } from './multiServiceAccessory';
 import { SubscriptionHandler } from './webhook/subscriptionHandler';
+import { MqttSubscriptionHandler } from './mqtt/mqttSubscriptionHandler';
 import { DISCOVERY_RETRY_ATTEMPTS, DISCOVERY_RETRY_INITIAL_DELAY_SECONDS, DISCOVERY_RETRY_MAX_DELAY_SECONDS, wait } from './keyValues';
 
 /**
@@ -33,6 +34,7 @@ export class IKHomeBridgeHomebridgePlatform implements DynamicPlatformPlugin {
 
   private accessoryObjects: MultiServiceAccessory[] = [];
   private subscriptionHandler: SubscriptionHandler | undefined = undefined;
+  private mqttSubscriptionHandler?: MqttSubscriptionHandler;
 
   constructor(
     public readonly log: Logger,
@@ -64,10 +66,25 @@ export class IKHomeBridgeHomebridgePlatform implements DynamicPlatformPlugin {
         }
         this.discoverDevices(devices);
         this.unregisterDevices(devices);
-        // Start subscription service if we have a webhook token
-        if (config.WebhookToken && config.WebhookToken !== '') {
+
+        // Transport selection: only one may be active.
+        // WebhookToken takes precedence if both are configured (original behavior).
+        const hasWebhookToken = config.WebhookToken && config.WebhookToken !== '';
+        const hasMqttBroker   = config.MqttBroker   && config.MqttBroker   !== '';
+
+        if (hasWebhookToken && hasMqttBroker) {
+          this.log.warn(
+            'Both WebhookToken and MqttBroker are configured. ' +
+            'WebhookToken takes precedence (original implementation). MQTT transport will not be started.'
+          );
+        }
+
+        if (hasWebhookToken) {
           this.subscriptionHandler = new SubscriptionHandler(this, this.accessoryObjects);
           this.subscriptionHandler.startService();
+        } else if (hasMqttBroker) {
+          this.mqttSubscriptionHandler = new MqttSubscriptionHandler(this, this.accessoryObjects);
+          this.mqttSubscriptionHandler.startService();
         }
 
       }).catch(reason => {

@@ -29,6 +29,32 @@
         "required": false,
         "default": ""
       },
+      "MqttBroker": {
+        "title": "MQTT Broker URL",
+        "description": "Full MQTT broker URL (e.g. mqtt://192.168.1.50:1883 or mqtts://...). When set and WebhookToken is not set, the plugin will receive events via MQTT from the SmartThings MQTT relay.",
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "MqttUsername": {
+        "title": "MQTT Username",
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "MqttPassword": {
+        "title": "MQTT Password",
+        "type": "string",
+        "required": false,
+        "default": ""
+      },
+      "MqttTopicPrefix": {
+        "title": "MQTT Topic Prefix",
+        "description": "Prefix used by the SmartThings MQTT relay (default: smartthings). Topics will be {prefix}/events/{deviceId}/{componentId}/{capability}/{attribute}",
+        "type": "string",
+        "required": false,
+        "default": "smartthings"
+      },
       "DiscoveryRetryAttempts": {
         "title": "Discovery Retry Attempts",
         "description": "How many times to retry discovering devices (and locations) when SmartThings is unreachable. Set to -1 for indefinite retries (highly recommended on unreliable networks or with Raspberry Pi).",
