@@ -75,7 +75,7 @@ export class IKHomeBridgeHomebridgePlatform implements DynamicPlatformPlugin {
         if (hasWebhookToken && hasMqttBroker) {
           this.log.warn(
             'Both WebhookToken and MqttBroker are configured. ' +
-            'WebhookToken takes precedence (original implementation). MQTT transport will not be started.'
+            'WebhookToken takes precedence (original implementation). MQTT transport will not be started.',
           );
         }
 
