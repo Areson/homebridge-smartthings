@@ -142,7 +142,7 @@ export class ThermostatService extends BaseService {
         break;
     }
 
-    this.multiServiceAccessory.sendCommand('thermostatMode', cmd).then((success) => {
+    this.multiServiceAccessory.sendCommand('thermostatMode', cmd, undefined, this.componentId).then((success) => {
       if (success) {
         this.log.debug('setTargetHeatingCoolingState(' + value + ') SUCCESSFUL for ' + this.name);
         //this.deviceStatus.timestamp = 0;  // Force a refresh next query.
@@ -264,7 +264,7 @@ export class ThermostatService extends BaseService {
     // If the thermostat's units is Farenheit, then we need to convert from celcius
     const convertedTemp = this.units === 'F' ? (value as number * (9/5)) + 32 : value;
 
-    this.multiServiceAccessory.sendCommand(capability, command, [convertedTemp]);
+    this.multiServiceAccessory.sendCommand(capability, command, [convertedTemp], this.componentId);
   }
 
   // DISPLAY UNITS

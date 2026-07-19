@@ -259,7 +259,7 @@ export class AirConditionerService extends BaseService {
   private async setLightSwitchState(value: CharacteristicValue): Promise<void> {
     const level = value ? 100 : 0; // 100 for on, 0 for off
     this.log.info(`[${this.name}] set light switch state to ${value}`);
-    this.sendCommandsOrFail([new Command('switchLevel', 'setLevel', [level])]);
+    this.sendCommandsOrFail([new Command('switchLevel', 'setLevel', [level], this.componentId)]);
   }
 
   private async getLightBrightness(): Promise<CharacteristicValue> {
@@ -269,7 +269,7 @@ export class AirConditionerService extends BaseService {
 
   private async setLightBrightness(value: CharacteristicValue): Promise<void> {
     this.log.info(`[${this.name}] set light brightness to ${value}`);
-    this.sendCommandsOrFail([new Command('switchLevel', 'setLevel', [value])]);
+    this.sendCommandsOrFail([new Command('switchLevel', 'setLevel', [value], this.componentId)]);
   }
 
   private async setOptionalModeSwitchState(value: CharacteristicValue): Promise<void> {
@@ -279,7 +279,7 @@ export class AirConditionerService extends BaseService {
     }
     const mode = value ? this.optionalMode : OptionalMode.Off;
     this.log.info(`[${this.name}] set airConditionerOptionalMode to ${mode}`);
-    this.sendCommandsOrFail([new Command('custom.airConditionerOptionalMode', 'setAcOptionalMode', [mode])]);
+    this.sendCommandsOrFail([new Command('custom.airConditionerOptionalMode', 'setAcOptionalMode', [mode], this.componentId)]);
   }
 
   private async getOptionalModeSwitchState(): Promise<CharacteristicValue> {
@@ -301,15 +301,15 @@ export class AirConditionerService extends BaseService {
       this.log.info(`[${this.name}] set switch state to ${switchState} and airConditionerMode to ${airConditionerMode}`);
       await this.sendCommandsOrFail(
         [
-          new Command('switch', switchState),
-          new Command('airConditionerMode', 'setAirConditionerMode', [airConditionerMode]),
+          new Command('switch', switchState, undefined, this.componentId),
+          new Command('airConditionerMode', 'setAirConditionerMode', [airConditionerMode], this.componentId),
         ],
       );
       return;
     }
 
     this.log.info(`[${this.name}] set switch state to ${switchState}.`);
-    await this.sendCommandsOrFail([new Command('switch', switchState)]);
+    await this.sendCommandsOrFail([new Command('switch', switchState, undefined, this.componentId)]);
   }
 
 
@@ -320,7 +320,7 @@ export class AirConditionerService extends BaseService {
 
   private setFanLevel(value: CharacteristicValue): Promise<void> {
     const fanMode = this.levelToFanMode(value as number);
-    const command = new Command('airConditionerFanMode', 'setFanMode', [fanMode]);
+    const command = new Command('airConditionerFanMode', 'setFanMode', [fanMode], this.componentId);
     this.log.info(`[${this.name}] set fan level to ${fanMode}`);
     return this.sendCommandsOrFail([command]);
   }
@@ -340,7 +340,7 @@ export class AirConditionerService extends BaseService {
   private setSwingMode(value: CharacteristicValue): Promise<void> {
     const mode = value === this.platform.Characteristic.SwingMode.SWING_ENABLED ? FanOscillationMode.All : FanOscillationMode.Fixed;
     this.log.info(`[${this.name}] set fan swing mode to ${mode}`);
-    const command = new Command('fanOscillationMode', 'setFanOscillationMode', [mode]);
+    const command = new Command('fanOscillationMode', 'setFanOscillationMode', [mode], this.componentId);
     return this.sendCommandsOrFail([command]);
   }
 
@@ -406,12 +406,12 @@ export class AirConditionerService extends BaseService {
 
     const commands = airConditionerMode ?
       [
-        new Command('switch', SwitchState.On),
-        new Command('airConditionerMode', 'setAirConditionerMode', [airConditionerMode]),
+        new Command('switch', SwitchState.On, undefined, this.componentId),
+        new Command('airConditionerMode', 'setAirConditionerMode', [airConditionerMode], this.componentId),
       ]
       :
       [
-        new Command('switch', SwitchState.Off),
+        new Command('switch', SwitchState.Off, undefined, this.componentId),
       ];
 
     await this.sendCommandsOrFail(commands);
@@ -477,7 +477,7 @@ export class AirConditionerService extends BaseService {
     this.log.info(`[${this.name}] set target temperature to ${value}`);
 
     const convertedTemp = this.fromCelsius(value as number);
-    const command = new Command('thermostatCoolingSetpoint', 'setCoolingSetpoint', [convertedTemp]);
+    const command = new Command('thermostatCoolingSetpoint', 'setCoolingSetpoint', [convertedTemp], this.componentId);
     return this.sendCommandsOrFail([command]);
   }
 

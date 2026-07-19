@@ -189,9 +189,9 @@ export abstract class BasePlatformAccessory {
     }
   }
 
-  async sendCommand(capability: string, command: string, args?: unknown[]): Promise<boolean> {
+  async sendCommand(capability: string, command: string, args?: unknown[], componentId?: string): Promise<boolean> {
 
-    let cmd: unknown;
+    let cmd: any;
 
     if (args) {
       cmd = {
@@ -204,6 +204,10 @@ export abstract class BasePlatformAccessory {
         capability: capability,
         command: command,
       };
+    }
+
+    if (componentId) {
+      cmd.component = componentId;
     }
 
     const commandBody = JSON.stringify([cmd]);
