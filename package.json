@@ -7,20 +7,26 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/iklein99/homebridge-smartthings.git"
+    "url": "git+https://github.com/Areson/homebridge-smartthings.git"
   },
   "bugs": {
-    "url": "https://github.com/iklein99/homebridge-smartthings/issues"
+    "url": "https://github.com/Areson/homebridge-smartthings/issues"
   },
+  "homepage": "https://github.com/Areson/homebridge-smartthings#readme",
   "engines": {
     "homebridge": "^1.6.0 || ^2.0.0",
     "node": "^22.12.0 || ^24.0.0"
   },
   "main": "dist/index.js",
+  "files": [
+    "dist",
+    "config.schema.json"
+  ],
   "scripts": {
     "lint": "eslint src/**.ts --max-warnings=0",
     "watch": "npm run build && npm link && nodemon",
     "build": "rimraf ./dist && tsc",
+    "prepare": "npm run build",
     "prepublishOnly": "npm run lint && npm run build",
     "deploy:local": "bash scripts/copy-to-homebridge.sh",
     "build:deploy": "npm run build && npm run deploy:local",
@@ -28,7 +34,10 @@
     "build:deploy:sudo": "npm run build && npm run deploy:local:sudo"
   },
   "keywords": [
-    "homebridge-plugin"
+    "homebridge-plugin",
+    "smartthings",
+    "homekit",
+    "homebridge"
   ],
   "dependencies": {
     "axios": "^1.7.9",

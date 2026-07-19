@@ -13,6 +13,72 @@ This is a smartthings plugin for Homebridge.  This requires no access to the leg
 require a lot of work to install.  It will discover devices automatically as well as unregister devices that are removed
 from your smarttthings network.  This is currently under development.
 
+> **Fork note:** This repository is maintained at [Areson/homebridge-smartthings](https://github.com/Areson/homebridge-smartthings).
+> Install from this GitHub fork (instructions below) rather than the original npm package if you want these changes.
+
+## Installation
+
+### Install from this GitHub repository (recommended for this fork)
+
+On the Homebridge host (or inside the Homebridge Docker container shell):
+
+```bash
+# Remove the original npm package if it is already installed
+npm uninstall -g homebridge-smartthings-ik
+
+# Install the latest from the master branch of this fork
+npm install -g github:Areson/homebridge-smartthings
+
+# Or pin a specific branch / tag / commit
+# npm install -g github:Areson/homebridge-smartthings#v2.0.0-beta.1
+# npm install -g github:Areson/homebridge-smartthings#master
+```
+
+If you use the official Homebridge apt package / `hb-service`:
+
+```bash
+sudo hb-service add github:Areson/homebridge-smartthings
+```
+
+Then restart Homebridge. The plugin name remains `homebridge-smartthings-ik` (same platform config as the original).
+
+### Update to the latest GitHub build
+
+```bash
+npm install -g github:Areson/homebridge-smartthings
+# then restart Homebridge
+```
+
+### Local development (copy into a Docker Homebridge volume)
+
+For day-to-day coding against a local Homebridge data directory, you can still use:
+
+```bash
+npm run build:deploy:sudo
+# or: HOMEBRIDGE_DATA=~/homebridge npm run build:deploy
+```
+
+Prefer GitHub installs for anything you want to keep across container restarts—the Homebridge UI often reinstalls plugins from npm and will overwrite a manual copy.
+
+### Publish to the npm registry (optional)
+
+The package name `homebridge-smartthings-ik` is already owned by the original author, so publishing **your** fork requires a **new** name (for example `homebridge-smartthings-areson`).
+
+```bash
+# 1. Change "name" in package.json to a name you own
+# 2. Log in to npm
+npm login
+
+# 3. Build + publish (prepublishOnly runs lint + build)
+npm publish --access public
+```
+
+After that you can install with:
+
+```bash
+npm install -g homebridge-smartthings-areson   # use whatever name you chose
+```
+
 ## Fixed in version 1.5.20
 * Fixed discovery of devices issue where some fans were set up as lights
 ## Fixed in version 1.5.19
