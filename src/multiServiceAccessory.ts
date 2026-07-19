@@ -410,8 +410,8 @@ export class MultiServiceAccessory {
     }
   }
 
-  async sendCommand(capability: string, command: string, args?: unknown[]): Promise<boolean> {
-    const cmd = new Command(capability, command, args);
+  async sendCommand(capability: string, command: string, args?: unknown[], componentId?: string): Promise<boolean> {
+    const cmd = new Command(capability, command, args, componentId);
     return this.sendCommands([cmd]);
   }
 
