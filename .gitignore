@@ -1,6 +1,9 @@
 # Ignore compiled code
 dist
 
+# Homebridge v2 upgrade working directory (task lists, notes, etc.)
+.agents/
+
 # ------------- Defaults ------------- #
 
 # Logs
