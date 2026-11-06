@@ -146,8 +146,8 @@ export abstract class BasePlatformAccessory {
     chracteristic: WithUUID<new () => Characteristic>, targetStateCharacteristic?: WithUUID<new () => Characteristic>,
     getTargetState?: () => Promise<CharacteristicValue>):NodeJS.Timer|void {
 
-    if (this.platform.config.WebhookToken && this.platform.config.WebhookToken !== '') {
-      return;  // Don't poll if we have a webhook token
+    if (this.platform.config.WebhookToken || this.platform.config.MqttBroker) {
+      return;  // Don't poll when events are pushed (webhook or MQTT)
     }
     if (pollSeconds > 0) {
       return setInterval(() => {
